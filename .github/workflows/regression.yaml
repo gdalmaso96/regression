@@ -63,7 +63,7 @@ jobs:
           
           # alma10
           export GLIBC_TUNABLES=glibc.rtld.optional_static_tls=2097152
-          pytest -v -runxfail -n 0
+          pytest -v --runxfail -n 0
           
           # gatherup regression output 
           /bdsim/venv-bdsim/bin/python regression_data.py copy --file=./regression_data.dat --destination=${{ matrix.dockerimage }}
