@@ -151,9 +151,72 @@ def collimator_proton_5TeV(batch=1) :
     else :
         return tracker_l, df
 
+def quadrupole_thick_matrix() :
+    import bdsim
+    import math
+
+    length = 0.5       # m
+    k1 = 0.2           # m^-2
+    x0 = 10.0          # mm
+    y0 = 2.0           # mm
+
+    parser = bdsim.BDSParser()
+    beam = parser.GetBeam()
+    beam["particleName"] = "proton"
+    beam["kineticEnergy"] = 100.0  # GeV
+
+    quadrupole = bdsim.Element()
+    quadrupole.name = "quadrupole"
+    quadrupole.type = bdsim.elementtype.ElementType.QUAD
+    quadrupole["l"] = length
+    quadrupole["k1"] = k1
+    quadrupole["apertureType"] = "circular"
+    quadrupole["aper1"] = 0.1
+    quadrupole["outerDiameter"] = 0.3
+    parser.GetBeamline().push_back(quadrupole, False, "element")
+
+    tracker = bdsim.BDSLinkTrackerInterface.GetInstance(
+        parser,
+        referenceParticlePDG=2212,
+        referenceKineticEnergy=100 * bdsim.clhep.GeV,
+    )
+    tracker.AddParticle(x0, y0, 0, 0, 0, 0, 1, 1, 0, 17, 2212)
+
+    link = tracker.GetBDSIMLink()
+    link.SelectLinkElement("quadrupole")
+    link.BeamOn(1)
+
+    hits = link.SamplerHits()
+    assert hits.entries() == 1
+    coordinates = hits[0].coords
+
+    root_k = math.sqrt(k1)
+    phase = root_k * length
+    expected = {
+        "x": math.cos(phase) * x0,
+        "xp": -root_k * math.sin(phase) * x0 * 1e-3,
+        "y": math.cosh(phase) * y0,
+        "yp": root_k * math.sinh(phase) * y0 * 1e-3,
+    }
+
+    assert coordinates.x == pytest.approx(expected["x"], abs=2e-5)
+    assert coordinates.xp == pytest.approx(expected["xp"], abs=2e-8)
+    assert coordinates.y == pytest.approx(expected["y"], abs=2e-5)
+    assert coordinates.yp == pytest.approx(expected["yp"], abs=2e-8)
+
+    return 0
+
 def test_drift_proton_5TeV(make_bdsim_test_code, run_bdsim_test_code_as_subprocess) :
     os.chdir(Path(__file__).resolve().parent)
     code = make_bdsim_test_code(drift_proton_5TeV, args="", dir=os.path.dirname(os.path.abspath(__file__)))
+    result = run_bdsim_test_code_as_subprocess(code)
+
+def test_quadrupole_thick_matrix(make_bdsim_test_code, run_bdsim_test_code_as_subprocess) :
+    code = make_bdsim_test_code(
+        quadrupole_thick_matrix,
+        args="",
+        dir=os.path.dirname(os.path.abspath(__file__)),
+    )
     result = run_bdsim_test_code_as_subprocess(code)
 
 # TODO
