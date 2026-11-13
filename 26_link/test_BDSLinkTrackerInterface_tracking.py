@@ -2,10 +2,13 @@
 # pytest -n auto
 
 import os
-import pytest
 from pathlib import Path
+from typing import Callable
+
+import pytest
 
 pytestmark = pytest.mark.xfail(reason="requires bdsim")
+
 
 def drift_proton_5TeV(batch=1) :
     import bdsim
@@ -151,7 +154,7 @@ def collimator_proton_5TeV(batch=1) :
     else :
         return tracker_l, df
 
-def quadrupole_thick_matrix() :
+def quadrupole_thick_matrix() -> int:
     import bdsim
     import math
 
@@ -211,13 +214,16 @@ def test_drift_proton_5TeV(make_bdsim_test_code, run_bdsim_test_code_as_subproce
     code = make_bdsim_test_code(drift_proton_5TeV, args="", dir=os.path.dirname(os.path.abspath(__file__)))
     result = run_bdsim_test_code_as_subprocess(code)
 
-def test_quadrupole_thick_matrix(make_bdsim_test_code, run_bdsim_test_code_as_subprocess) :
+def test_quadrupole_thick_matrix(
+    make_bdsim_test_code: Callable[..., str],
+    run_bdsim_test_code_as_subprocess: Callable[[str], str],
+) -> None:
     code = make_bdsim_test_code(
         quadrupole_thick_matrix,
         args="",
         dir=os.path.dirname(os.path.abspath(__file__)),
     )
-    result = run_bdsim_test_code_as_subprocess(code)
+    run_bdsim_test_code_as_subprocess(code)
 
 # TODO
 #def test_collimator_proton_5TeV(make_bdsim_test_code, run_bdsim_test_code_as_subprocess) :
